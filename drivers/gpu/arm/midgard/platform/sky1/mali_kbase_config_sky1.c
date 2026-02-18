@@ -281,8 +281,8 @@ static int kbase_platform_sky1_late_init(struct kbase_device *kbdev)
 
 	INIT_WORK(&kbdev->sky1_power_work, sky1_power_model_work_handler);
 
-	hrtimer_init(&kbdev->sky1_power_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-	kbdev->sky1_power_timer.function = sky1_power_timer_callback;
+	kbase_hrtimer_setup(&kbdev->sky1_power_timer, sky1_power_timer_callback,
+			    CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 
 	if(enable_sky1_power_model) {
 		hrtimer_start(&kbdev->sky1_power_timer,

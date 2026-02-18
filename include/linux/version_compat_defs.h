@@ -649,6 +649,30 @@ kbase_mm_get_unmapped_area_helper(struct mm_struct *mm, struct file *filp, unsig
 #endif
 }
 
+/*
+ * del_timer_sync() compat alias removed in v6.15 (commit 8fa7292fee5c5).
+ * Provide a compat define for older kernels.
+ */
+#if (KERNEL_VERSION(6, 15, 0) <= LINUX_VERSION_CODE)
+#define del_timer_sync(t) timer_delete_sync(t)
+#endif
+
+/*
+ * hrtimer_init() was removed in v6.15 (commit 9779489a31d77), replaced by
+ * hrtimer_setup() which takes the callback as a parameter.
+ * Provide a compat wrapper for older kernels.
+ */
+#if (KERNEL_VERSION(6, 15, 0) > LINUX_VERSION_CODE)
+#define kbase_hrtimer_setup(timer, callback, clock, mode) \
+	do { \
+		hrtimer_init((timer), (clock), (mode)); \
+		(timer)->function = (callback); \
+	} while (0)
+#else
+#define kbase_hrtimer_setup(timer, callback, clock, mode) \
+	hrtimer_setup((timer), (callback), (clock), (mode))
+#endif
+
 static inline void kbase_lockdep_assert_held_read(struct rw_semaphore *rwlock)
 {
 #if (KERNEL_VERSION(4, 10, 0) <= LINUX_VERSION_CODE)
