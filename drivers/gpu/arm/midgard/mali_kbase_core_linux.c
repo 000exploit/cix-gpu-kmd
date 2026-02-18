@@ -3752,7 +3752,7 @@ static struct dentry *init_debugfs(struct kbase_device *kbdev)
 
 #ifdef CONFIG_MALI_DEVFREQ
 #if IS_ENABLED(CONFIG_DEVFREQ_THERMAL)
-	if (kbdev->devfreq)
+	if (kbdev->devfreq && !kbdev->ipa_init_failed)
 		kbase_ipa_debugfs_init(kbdev);
 #endif /* CONFIG_DEVFREQ_THERMAL */
 #endif /* CONFIG_MALI_DEVFREQ */
@@ -4433,7 +4433,7 @@ static ssize_t enable_sky1_power_model_store(struct device *dev, struct device_a
 	if (kstrtouint(buf, 10, &val) != 0)
 		return -EINVAL;
 
-	if (val == 1 && !enable_sky1_power_model) {
+	if (val == 1 && !enable_sky1_power_model && !kbdev->ipa_init_failed) {
 		enable_sky1_power_model = true;
 		hrtimer_start(&kbdev->sky1_power_timer,
 				HR_TIMER_DELAY_MSEC(PM_POWER_MODEL_SAMPLE_INTERVAL_MS), HRTIMER_MODE_REL);

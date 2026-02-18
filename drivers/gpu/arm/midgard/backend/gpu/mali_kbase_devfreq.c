@@ -723,8 +723,11 @@ int kbase_devfreq_init(struct kbase_device *kbdev)
 #if IS_ENABLED(CONFIG_DEVFREQ_THERMAL)
 	err = kbase_ipa_init(kbdev);
 	if (err) {
-		dev_err(kbdev->dev, "IPA initialization failed");
-		goto ipa_init_failed;
+		dev_warn(kbdev->dev,
+			 "IPA initialization failed (%d), devfreq will run without thermal cooling",
+			 err);
+		kbdev->ipa_init_failed = true;
+		err = 0;
 	}
 #endif
 
@@ -770,25 +773,27 @@ int kbase_devfreq_init(struct kbase_device *kbdev)
 	}
 
 #if IS_ENABLED(CONFIG_DEVFREQ_THERMAL)
-	/* Register devfreq cooling device with Energy Model (EM).
-	* of_devfreq_cooling_register_power() will register
-	* ipa power model ops only after it is an EM device.
-	*/
+	if (!kbdev->ipa_init_failed) {
+		/* Register devfreq cooling device with Energy Model (EM).
+		 * of_devfreq_cooling_register_power() will register
+		 * ipa power model ops only after it is an EM device.
+		 */
 #if IS_ENABLED(CONFIG_CIX_SCMI_ENERGY_MODEL)
-	err = cix_scmi_register_em(kbdev->dev);
-	if(err) {
-		dev_err(kbdev->dev, "Failed to register Energy Model (%d)", err);
-		goto cooling_reg_failed;
-	}
+		err = cix_scmi_register_em(kbdev->dev);
+		if (err) {
+			dev_err(kbdev->dev, "Failed to register Energy Model (%d)", err);
+			goto cooling_reg_failed;
+		}
 #endif /* CONFIG_CIX_SCMI_ENERGY_MODEL */
 
-	kbdev->devfreq_cooling = of_devfreq_cooling_register_power(
-		kbdev->dev->of_node, kbdev->devfreq, &kbase_ipa_power_model_ops);
-	if (IS_ERR_OR_NULL(kbdev->devfreq_cooling)) {
-		err = PTR_ERR_OR_ZERO(kbdev->devfreq_cooling);
-		dev_err(kbdev->dev, "Failed to register cooling device (%d)", err);
-		err = err == 0 ? -ENODEV : err;
-		goto cooling_reg_failed;
+		kbdev->devfreq_cooling = of_devfreq_cooling_register_power(
+			kbdev->dev->of_node, kbdev->devfreq, &kbase_ipa_power_model_ops);
+		if (IS_ERR_OR_NULL(kbdev->devfreq_cooling)) {
+			err = PTR_ERR_OR_ZERO(kbdev->devfreq_cooling);
+			dev_err(kbdev->dev, "Failed to register cooling device (%d)", err);
+			err = err == 0 ? -ENODEV : err;
+			goto cooling_reg_failed;
+		}
 	}
 #endif /* CONFIG_DEVFREQ_THERMAL */
 
@@ -818,8 +823,8 @@ devfreq_add_dev_failed:
 
 init_core_mask_table_failed:
 #if IS_ENABLED(CONFIG_DEVFREQ_THERMAL)
-	kbase_ipa_term(kbdev);
-ipa_init_failed:
+	if (!kbdev->ipa_init_failed)
+		kbase_ipa_term(kbdev);
 #endif
 	if (free_devfreq_freq_table)
 		kbase_devfreq_term_freq_table(kbdev);
@@ -856,6 +861,7 @@ void kbase_devfreq_term(struct kbase_device *kbdev)
 	kbase_devfreq_term_core_mask_table(kbdev);
 
 #if IS_ENABLED(CONFIG_DEVFREQ_THERMAL)
-	kbase_ipa_term(kbdev);
+	if (!kbdev->ipa_init_failed)
+		kbase_ipa_term(kbdev);
 #endif
 }
