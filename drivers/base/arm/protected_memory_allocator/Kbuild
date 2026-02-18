@@ -18,6 +18,8 @@
 #
 #
 
-ifeq ($(CONFIG_MALI_PROTECTED_MEMORY_ALLOCATOR), y)
+ifneq ($(CONFIG_MALI_PROTECTED_MEMORY_ALLOCATOR),)
+ifneq ($(CONFIG_MALI_PROTECTED_MEMORY_ALLOCATOR), n)
 obj-m := protected_memory_allocator.o
+endif
 endif
