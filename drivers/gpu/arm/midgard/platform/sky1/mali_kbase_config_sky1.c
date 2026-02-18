@@ -128,11 +128,7 @@ static int sky1_gpu_attach_pd(struct kbase_device *kbdev)
 
 #ifdef CONFIG_MALI_DEVFREQ
 
-#ifdef CONFIG_ARM_SCMI_SUPPORT_DT_ACPI
-	kbdev->sky1_perf_dev = fwnode_dev_pm_domain_attach_by_name(kbdev->dev, "perf");
-#else
-  	kbdev->sky1_perf_dev = dev_pm_domain_attach_by_name(kbdev->dev, "perf");
-#endif
+	kbdev->sky1_perf_dev = dev_pm_domain_attach_by_name(kbdev->dev, "perf");
 
 	link = device_link_add(kbdev->dev, kbdev->sky1_perf_dev,
 				DL_FLAG_STATELESS | DL_FLAG_PM_RUNTIME | DL_FLAG_RPM_ACTIVE);
@@ -171,10 +167,10 @@ static int sky1_gpu_detach_pd(struct kbase_device *kbdev)
 	dev_info(kbdev->dev, "%s\n", __func__);
 
 #ifdef CONFIG_MALI_DEVFREQ
-	dev_pm_domain_detach(kbdev->sky1_perf_dev, "perf");
+	dev_pm_domain_detach(kbdev->sky1_perf_dev, true);
 #endif
 	if (!has_acpi_companion(kbdev->dev)) {
-		dev_pm_domain_detach(kbdev->sky1_power_dev, "pd_gpu");
+		dev_pm_domain_detach(kbdev->sky1_power_dev, true);
 	}
 
 	return 0;
@@ -428,11 +424,10 @@ int sky1_gpu_init_perf_opp_table(struct kbase_device *kbdev, struct devfreq_dev_
 	unsigned long lowest_freq_khz = DEFAULT_REF_TIMEOUT_FREQ_KHZ;
 	unsigned long found_lowest_freq = 0;
 
-	err = scmi_device_opp_table_parse(kbdev->sky1_perf_dev);
-	if (err) {
-		dev_err(kbdev->dev, "Failed to parse opp table from scmi, err = %d.\n", err);
-		return err;
-	}
+	/* OPPs are auto-populated on sky1_perf_dev by the SCMI perf domain's
+	 * attach_dev callback (scmi_pd_attach_dev -> device_opps_add) when
+	 * dev_pm_domain_attach_by_name() is called in sky1_gpu_attach_pd().
+	 */
 
 	err = device_property_read_u32(kbdev->dev, "gpu-microvolt", &volt);
 	if (err) {
