@@ -211,18 +211,20 @@ ifeq ($(MALI_KCONFIG_EXT_PREFIX),)
 endif
 
 #
-# EXTRA_CFLAGS to define the custom CONFIGs on out-of-tree build
+# MALI_CFLAGS to define the custom CONFIGs on out-of-tree build
 #
 # Generate the list of CONFIGs defines with values from CONFIGS.
 # $(value config) is the name of the CONFIG option.
 # When set to y or m, the CONFIG gets defined to 1.
-EXTRA_CFLAGS := $(foreach config,$(CONFIGS), \
+# Note: EXTRA_CFLAGS was removed from kbuild in kernel 6.15 (commit e966ad0edd005).
+# Use MALI_CFLAGS passed to Kbuild which adds it to ccflags-y.
+MALI_CFLAGS := $(foreach config,$(CONFIGS), \
                     $(if $(filter y m,$(value $(value config))), \
                         -D$(value config)=1))
 
 ifeq ($(MALI_KCONFIG_EXT_PREFIX),)
-    EXTRA_CFLAGS += -DCONFIG_MALI_PLATFORM_NAME='\"$(CONFIG_MALI_PLATFORM_NAME)\"'
-    EXTRA_CFLAGS += -DCONFIG_MALI_NO_MALI_DEFAULT_GPU='\"$(CONFIG_MALI_NO_MALI_DEFAULT_GPU)\"'
+    MALI_CFLAGS += -DCONFIG_MALI_PLATFORM_NAME='\"$(CONFIG_MALI_PLATFORM_NAME)\"'
+    MALI_CFLAGS += -DCONFIG_MALI_NO_MALI_DEFAULT_GPU='\"$(CONFIG_MALI_NO_MALI_DEFAULT_GPU)\"'
 endif
 
 #
@@ -283,17 +285,17 @@ CFLAGS_MODULE += -Wno-ignored-qualifiers
 ifeq ($(CONFIG_GCOV_KERNEL),y)
     CFLAGS_MODULE += $(call cc-option, -ftest-coverage)
     CFLAGS_MODULE += $(call cc-option, -fprofile-arcs)
-    EXTRA_CFLAGS += -DGCOV_PROFILE=1
+    MALI_CFLAGS += -DGCOV_PROFILE=1
 endif
 
 ifeq ($(CONFIG_MALI_KCOV),y)
     CFLAGS_MODULE += $(call cc-option, -fsanitize-coverage=trace-cmp)
-    EXTRA_CFLAGS += -DKCOV=1
-    EXTRA_CFLAGS += -DKCOV_ENABLE_COMPARISONS=1
+    MALI_CFLAGS += -DKCOV=1
+    MALI_CFLAGS += -DKCOV_ENABLE_COMPARISONS=1
 endif
 
 all:
-	$(MAKE) -C $(KDIR) M=$(M) $(MAKE_ARGS) EXTRA_CFLAGS="$(EXTRA_CFLAGS)" KBUILD_EXTRA_SYMBOLS="$(EXTRA_SYMBOLS)" modules
+	$(MAKE) -C $(KDIR) M=$(M) $(MAKE_ARGS) MALI_CFLAGS="$(MALI_CFLAGS)" KBUILD_EXTRA_SYMBOLS="$(EXTRA_SYMBOLS)" modules
 
 modules_install:
 	$(MAKE) -C $(KDIR) M=$(M) $(MAKE_ARGS) modules_install

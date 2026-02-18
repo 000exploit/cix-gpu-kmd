@@ -112,6 +112,8 @@ endif
 #
 # ccflags
 #
+# MALI_CFLAGS is passed from the top-level Makefile and contains
+# -DCONFIG_MALI_*=1 defines for out-of-tree builds.
 ccflags-y = \
     -DMALI_CUSTOMER_RELEASE=$(MALI_CUSTOMER_RELEASE) \
     -DMALI_KERNEL_TEST_API=$(MALI_KERNEL_TEST_API) \
@@ -119,7 +121,8 @@ ccflags-y = \
     -DMALI_COVERAGE=$(MALI_COVERAGE) \
     -DMALI_RELEASE_NAME=$(MALI_RELEASE_NAME) \
     -DMALI_JIT_PRESSURE_LIMIT_BASE=$(MALI_JIT_PRESSURE_LIMIT_BASE) \
-    -DMALI_PLATFORM_DIR=$(MALI_PLATFORM_DIR)
+    -DMALI_PLATFORM_DIR=$(MALI_PLATFORM_DIR) \
+    $(MALI_CFLAGS)
 
 ifeq ($(CONFIG_MALI_CIX_POWER_MODEL),)
     ccflags-y +=-DCONFIG_MALI_CIX_POWER_MODEL=1

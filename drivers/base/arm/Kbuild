@@ -42,7 +42,8 @@ endif
 #
 # ccflags
 #
-ccflags-y += -I$(src)/../../../include
+# MALI_CFLAGS is passed from the top-level Makefile for out-of-tree CONFIG defines.
+ccflags-y += -I$(src)/../../../include $(MALI_CFLAGS)
 
 subdir-ccflags-y += $(ccflags-y)
 
