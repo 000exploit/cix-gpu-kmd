@@ -683,13 +683,25 @@ kbase_mm_get_unmapped_area_helper(struct mm_struct *mm, struct file *filp, unsig
  * matching case in mm/migrate.c:set_movable_ops(), so we translate the old API
  * to the new page-type-based API.  The ops parameter is ignored here because
  * ops are registered globally via set_movable_ops() in kbase_mem_migrate_init().
- */
+ /
 #if (KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE)
 #include <linux/page-flags.h>
 #define __SetPageMovable(page, ops) \
 	do { __SetPageMaliGpu(page); SetPageMovableOps(page); } while (0)
 #define __ClearPageMovable(page) \
 	do { clear_bit(PG_movable_ops, &(page)->flags.f); __ClearPageMaliGpu(page); } while (0)
+#endif
+*/
+
+/*
+ * FIXME(b/440410669): These PageMovable APIs were removed upstream in kernel
+ * v6.17-rc1. This is a temporary workaround to allow the driver to build and
+ * load on newer kernels. While this unblocks development, a proper solution
+ * is still required.
+ */
+#if (KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE)
+#define __SetPageMovable(p, op)        ({(void)(p); (void)(op);})
+#define __ClearPageMovable(p)  ({(void)(p);})
 #endif
 
 static inline void kbase_lockdep_assert_held_read(struct rw_semaphore *rwlock)

@@ -46,6 +46,7 @@ MODULE_PARM_DESC(kbase_page_migration_enabled,
 static const struct movable_operations movable_ops;
 #endif
 
+
 bool kbase_is_page_migration_enabled(void)
 {
 	return static_branch_unlikely(&page_migration_static_key);
@@ -756,6 +757,12 @@ void kbase_mem_migrate_init(struct kbase_device *kbdev)
 {
 	struct kbase_mem_migrate *mem_migrate = &kbdev->mem_migrate;
 
+#if (KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE)
+	pr_warn_once("Page migration disabled due to kernel API changes (b/440410669)\n");
+	kbase_page_migration_enabled = 0;
+#endif
+
+
 	/* Page migration support compiled in, either explicitly or
 	 * by default, so the default behaviour is to follow the choice
 	 * of large pages if not selected at insmod. Check insmod parameter
@@ -772,11 +779,11 @@ void kbase_mem_migrate_init(struct kbase_device *kbdev)
 			static_branch_inc(&page_migration_static_key);
 	}
 
-#if (KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE)
+//#if (KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE)
 	/* Register movable_operations with the kernel's PGTY_mali_gpu page type.
 	 * This requires our kernel patch that adds PGTY_mali_gpu to page-flags.h
 	 * and the matching case in mm/migrate.c:set_movable_ops().
-	 */
+	 *
 	if (kbase_is_page_migration_enabled()) {
 		int err = set_movable_ops(&movable_ops, PGTY_mali_gpu);
 
@@ -786,8 +793,8 @@ void kbase_mem_migrate_init(struct kbase_device *kbdev)
 				 err);
 			static_branch_dec(&page_migration_static_key);
 		}
-	}
-#endif
+	}*/
+//#endif
 
 	spin_lock_init(&mem_migrate->free_pages_lock);
 	INIT_LIST_HEAD(&mem_migrate->free_pages_list);
@@ -800,11 +807,12 @@ void kbase_mem_migrate_init(struct kbase_device *kbdev)
 void kbase_mem_migrate_term(struct kbase_device *kbdev)
 {
 	struct kbase_mem_migrate *mem_migrate = &kbdev->mem_migrate;
-
+/*
 #if (KERNEL_VERSION(6, 17, 0) <= LINUX_VERSION_CODE)
 	if (kbase_is_page_migration_enabled())
 		set_movable_ops(NULL, PGTY_mali_gpu);
 #endif
+*/
 
 	if (mem_migrate->free_pages_workq)
 		destroy_workqueue(mem_migrate->free_pages_workq);
